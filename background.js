@@ -24,13 +24,22 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
-// Handle extension icon clicks
-chrome.action.onClicked.addListener((tab) => {
-  saveArticleToCuraQ(tab);
+// Handle messages from popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'saveArticle') {
+    // Get the tab to save
+    chrome.tabs.get(request.tabId, async (tab) => {
+      const result = await saveArticleToCuraQ(tab);
+      sendResponse(result);
+    });
+    // Return true to indicate we'll send response asynchronously
+    return true;
+  }
 });
 
 /**
  * Extract article content and save to CuraQ
+ * Returns { success: boolean, error?: string }
  */
 async function saveArticleToCuraQ(tab) {
   try {
@@ -40,8 +49,9 @@ async function saveArticleToCuraQ(tab) {
     });
 
     if (!response.success) {
-      showNotification('エラー', response.error || '記事の抽出に失敗しました');
-      return;
+      const errorMsg = response.error || '記事の抽出に失敗しました';
+      showNotification('エラー', errorMsg);
+      return { success: false, error: errorMsg };
     }
 
     const { title, url, markdown } = response.data;
@@ -62,7 +72,7 @@ async function saveArticleToCuraQ(tab) {
     // Check if redirected (successful save redirects to /?saved=1)
     if (apiResponse.type === 'opaqueredirect' || apiResponse.status === 0) {
       showNotification('保存完了', `「${title}」をCuraQに保存しました`);
-      return;
+      return { success: true };
     }
 
     // Handle redirects
@@ -71,21 +81,27 @@ async function saveArticleToCuraQ(tab) {
 
       if (redirectUrl.includes('saved=1')) {
         showNotification('保存完了', `「${title}」をCuraQに保存しました`);
+        return { success: true };
       } else if (redirectUrl.includes('restored=1')) {
         showNotification('保存完了', `「${title}」を再登録しました`);
+        return { success: true };
       } else if (redirectUrl.includes('already-read=1')) {
         showNotification('既読記事', 'この記事は既に読了済みです');
+        return { success: false, error: 'この記事は既に読了済みです' };
       } else if (redirectUrl.includes('error=limit-reached')) {
         showNotification('月間制限', '今月の記事保存上限に達しました');
+        return { success: false, error: '今月の記事保存上限に達しました' };
       } else if (redirectUrl.includes('error=unread-limit')) {
         showNotification('未読上限', '未読記事が30件に達しています。記事を読んでから追加してください');
+        return { success: false, error: '未読記事が30件に達しています' };
       } else if (redirectUrl.includes('error=')) {
         const errorParam = redirectUrl.match(/error=([^&]+)/)?.[1];
         showNotification('エラー', `保存に失敗しました: ${errorParam}`);
+        return { success: false, error: `保存に失敗しました: ${errorParam}` };
       } else {
         showNotification('保存完了', `「${title}」をCuraQに保存しました`);
+        return { success: true };
       }
-      return;
     }
 
     // If status is 200, it means we got the login page (not authenticated)
@@ -94,16 +110,19 @@ async function saveArticleToCuraQ(tab) {
       if (text.includes('login') || text.includes('ログイン')) {
         showNotification('未ログイン', 'CuraQにログインしてください');
         chrome.tabs.create({ url: 'https://curaq.pages.dev/login' });
-        return;
+        return { success: false, error: 'CuraQにログインしてください' };
       }
     }
 
     // Other errors
     showNotification('エラー', `保存に失敗しました (${apiResponse.status})`);
+    return { success: false, error: `保存に失敗しました (${apiResponse.status})` };
 
   } catch (error) {
     console.error('[CuraQ] Save error:', error);
-    showNotification('エラー', error.message || '記事の保存に失敗しました');
+    const errorMsg = error.message || '記事の保存に失敗しました';
+    showNotification('エラー', errorMsg);
+    return { success: false, error: errorMsg };
   }
 }
 

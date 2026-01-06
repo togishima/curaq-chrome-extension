@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CuraQ Saver</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .logo {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status.loading {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .status.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status.info {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .button {
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .button-primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .button-primary:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    .button-secondary {
+      background: white;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+
+    .button-secondary:hover:not(:disabled) {
+      background: #f9fafb;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .footer {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+    }
+
+    .footer a {
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    .footer a:hover {
+      color: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="icons/icon-48.png" alt="CuraQ" class="logo">
+      <div class="title">CuraQ Saver</div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading-state" class="status loading">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="spinner"></div>
+        <span>確認中...</span>
+      </div>
+    </div>
+
+    <!-- Not logged in state -->
+    <div id="not-logged-in-state" class="hidden">
+      <div class="status info">
+        CuraQにログインしていません
+      </div>
+      <button id="login-button" class="button button-primary">
+        CuraQにログイン
+      </button>
+    </div>
+
+    <!-- Logged in state -->
+    <div id="logged-in-state" class="hidden">
+      <button id="save-button" class="button button-primary">
+        <span id="save-button-text">この記事を保存</span>
+        <div id="save-spinner" class="spinner hidden"></div>
+      </button>
+    </div>
+
+    <!-- Success state -->
+    <div id="success-state" class="hidden">
+      <div class="status success">
+        ✓ 保存しました！
+      </div>
+      <button id="view-dashboard-button" class="button button-secondary">
+        ダッシュボードを開く
+      </button>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" class="hidden">
+      <div class="status error">
+        <div id="error-message"></div>
+      </div>
+      <button id="retry-button" class="button button-primary">
+        再試行
+      </button>
+    </div>
+
+    <div class="footer">
+      <a href="https://curaq.pages.dev" target="_blank">CuraQを開く</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
