@@ -118,10 +118,37 @@ async function saveArticleToCuraQ(tab) {
       return { success: false, error: 'APIトークンが設定されていません' };
     }
 
-    // Send message to content script to extract article
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'extractContent'
-    });
+    // Ensure content script is loaded before sending message
+    let response;
+    try {
+      response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'extractContent'
+      });
+    } catch (error) {
+      // Content script not loaded - inject it manually
+      console.log('[CuraQ] Content script not found, injecting...');
+
+      try {
+        // Inject content script manually
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['libs/readability.js', 'libs/turndown.js', 'content.js']
+        });
+
+        // Wait a moment for script to initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Try sending message again
+        response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'extractContent'
+        });
+      } catch (injectError) {
+        console.error('[CuraQ] Failed to inject content script:', injectError);
+        const errorMsg = 'このページでは記事を保存できません';
+        showNotification('エラー', errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    }
 
     if (!response.success) {
       const errorMsg = response.error || '記事の抽出に失敗しました';
