@@ -41,6 +41,17 @@
       font-size: 16px;
       font-weight: 600;
       color: #1f2937;
+      flex: 1;
+    }
+
+    .settings-icon {
+      cursor: pointer;
+      color: #6b7280;
+      padding: 4px;
+    }
+
+    .settings-icon:hover {
+      color: #374151;
     }
 
     .status {
@@ -69,6 +80,11 @@
     .status.info {
       background: #e0e7ff;
       color: #3730a3;
+    }
+
+    .status.warning {
+      background: #fef3c7;
+      color: #92400e;
     }
 
     .button {
@@ -110,6 +126,15 @@
       background: #f9fafb;
     }
 
+    .button-danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .button-danger:hover:not(:disabled) {
+      background: #b91c1c;
+    }
+
     .spinner {
       display: inline-block;
       width: 14px;
@@ -128,6 +153,48 @@
       display: none !important;
     }
 
+    .input-group {
+      margin-bottom: 12px;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: monospace;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .help-text a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    .help-text a:hover {
+      text-decoration: underline;
+    }
+
     .footer {
       margin-top: 12px;
       padding-top: 12px;
@@ -144,6 +211,16 @@
     .footer a:hover {
       color: #2563eb;
     }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .button-group .button {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -151,6 +228,10 @@
     <div class="header">
       <img src="icons/icon-48.png" alt="CuraQ" class="logo">
       <div class="title">CuraQ Saver</div>
+      <svg id="settings-toggle" class="settings-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
     </div>
 
     <!-- Loading state -->
@@ -161,18 +242,52 @@
       </div>
     </div>
 
-    <!-- Not logged in state -->
-    <div id="not-logged-in-state" class="hidden">
-      <div class="status info">
-        CuraQにログインしていません
+    <!-- Token not set state -->
+    <div id="no-token-state" class="hidden">
+      <div class="status warning">
+        APIトークンが設定されていません
       </div>
-      <button id="login-button" class="button button-primary">
-        CuraQにログイン
+      <div class="input-group">
+        <label class="input-label">APIトークン</label>
+        <input type="password" id="token-input" class="input" placeholder="トークンを入力...">
+      </div>
+      <button id="save-token-button" class="button button-primary">
+        トークンを保存
       </button>
+      <p class="help-text">
+        トークンは<a href="https://curaq.pages.dev/settings/mcp" target="_blank">CuraQ設定ページ</a>で取得できます。Pro会員限定機能です。
+      </p>
     </div>
 
-    <!-- Logged in state -->
-    <div id="logged-in-state" class="hidden">
+    <!-- Token invalid state -->
+    <div id="invalid-token-state" class="hidden">
+      <div class="status error">
+        トークンが無効です
+      </div>
+      <div class="input-group">
+        <label class="input-label">APIトークン</label>
+        <input type="password" id="token-input-retry" class="input" placeholder="トークンを入力...">
+      </div>
+      <button id="save-token-retry-button" class="button button-primary">
+        トークンを保存
+      </button>
+      <p class="help-text">
+        トークンは<a href="https://curaq.pages.dev/settings/mcp" target="_blank">CuraQ設定ページ</a>で再発行できます。
+      </p>
+    </div>
+
+    <!-- No Pro plan state -->
+    <div id="no-pro-state" class="hidden">
+      <div class="status warning">
+        Pro会員限定機能です
+      </div>
+      <p class="help-text">
+        Chrome拡張機能はPro会員向けの機能です。<a href="https://curaq.pages.dev/settings" target="_blank">アップグレード</a>して利用を開始してください。
+      </p>
+    </div>
+
+    <!-- Ready state (token valid) -->
+    <div id="ready-state" class="hidden">
       <button id="save-button" class="button button-primary">
         <span id="save-button-text">この記事を保存</span>
         <div id="save-spinner" class="spinner hidden"></div>
@@ -182,10 +297,10 @@
     <!-- Success state -->
     <div id="success-state" class="hidden">
       <div class="status success">
-        ✓ 保存しました！
+        保存しました
       </div>
       <button id="view-dashboard-button" class="button button-secondary">
-        ダッシュボードを開く
+        CuraQを開く
       </button>
     </div>
 
@@ -197,6 +312,25 @@
       <button id="retry-button" class="button button-primary">
         再試行
       </button>
+    </div>
+
+    <!-- Settings state -->
+    <div id="settings-state" class="hidden">
+      <div class="status info">
+        設定
+      </div>
+      <div class="input-group">
+        <label class="input-label">APIトークン（設定済み）</label>
+        <input type="password" id="current-token" class="input" placeholder="********" disabled>
+      </div>
+      <div class="button-group">
+        <button id="back-button" class="button button-secondary">
+          戻る
+        </button>
+        <button id="clear-token-button" class="button button-danger">
+          トークンを削除
+        </button>
+      </div>
     </div>
 
     <div class="footer">

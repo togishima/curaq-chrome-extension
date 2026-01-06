@@ -1,12 +1,12 @@
 /**
  * Background Service Worker for CuraQ Saver
- * Handles context menu and API communication
+ * Handles context menu and API communication with token auth
  */
 
-// CuraQ API endpoint (change to your production URL)
-const CURAQ_API_URL = 'https://curaq.pages.dev/share';
+// CuraQ API endpoint
+const CURAQ_API_URL = 'https://curaq.pages.dev/api/v1';
 // For local development, uncomment:
-// const CURAQ_API_URL = 'http://localhost:5173/share';
+// const CURAQ_API_URL = 'http://localhost:5173/api/v1';
 
 // Create context menu on installation
 chrome.runtime.onInstalled.addListener(() => {
@@ -32,17 +32,84 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const result = await saveArticleToCuraQ(tab);
       sendResponse(result);
     });
-    // Return true to indicate we'll send response asynchronously
+    return true;
+  }
+
+  if (request.action === 'checkToken') {
+    checkTokenValid().then(sendResponse);
+    return true;
+  }
+
+  if (request.action === 'saveToken') {
+    chrome.storage.local.set({ apiToken: request.token }, () => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  if (request.action === 'clearToken') {
+    chrome.storage.local.remove('apiToken', () => {
+      sendResponse({ success: true });
+    });
     return true;
   }
 });
 
 /**
+ * Get API token from storage
+ */
+async function getApiToken() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get('apiToken', (result) => {
+      resolve(result.apiToken || null);
+    });
+  });
+}
+
+/**
+ * Check if token is valid by making a test request
+ */
+async function checkTokenValid() {
+  const token = await getApiToken();
+
+  if (!token) {
+    return { valid: false, error: 'no-token' };
+  }
+
+  try {
+    const response = await fetch(`${CURAQ_API_URL}/articles?limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'invalid-token' };
+    } else if (response.status === 403) {
+      return { valid: false, error: 'no-pro-plan' };
+    } else {
+      return { valid: false, error: `api-error-${response.status}` };
+    }
+  } catch (error) {
+    console.error('[CuraQ] Token check failed:', error);
+    return { valid: false, error: 'network-error' };
+  }
+}
+
+/**
  * Extract article content and save to CuraQ
- * Returns { success: boolean, error?: string }
  */
 async function saveArticleToCuraQ(tab) {
   try {
+    const token = await getApiToken();
+
+    if (!token) {
+      showNotification('未設定', 'APIトークンが設定されていません');
+      return { success: false, error: 'APIトークンが設定されていません' };
+    }
+
     // Send message to content script to extract article
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'extractContent'
@@ -56,67 +123,38 @@ async function saveArticleToCuraQ(tab) {
 
     const { title, url, markdown } = response.data;
 
-    // Send to CuraQ API
-    const formData = new FormData();
-    formData.append('url', url);
-    formData.append('title', title);
-    formData.append('markdown', markdown);
-
-    const apiResponse = await fetch(CURAQ_API_URL, {
+    // Send to CuraQ API with token auth
+    const apiResponse = await fetch(`${CURAQ_API_URL}/articles`, {
       method: 'POST',
-      body: formData,
-      credentials: 'include', // Include cookies for authentication
-      redirect: 'manual' // Don't follow redirects (we'll handle them)
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ url, title, markdown })
     });
 
-    // Check if redirected (successful save redirects to /?saved=1)
-    if (apiResponse.type === 'opaqueredirect' || apiResponse.status === 0) {
-      showNotification('保存完了', `「${title}」をCuraQに保存しました`);
+    const result = await apiResponse.json();
+
+    if (apiResponse.ok && result.success) {
+      const message = result.restored
+        ? `「${title}」を再登録しました`
+        : `「${title}」をCuraQに保存しました`;
+      showNotification('保存完了', message);
       return { success: true };
     }
 
-    // Handle redirects
-    if (apiResponse.status >= 300 && apiResponse.status < 400) {
-      const redirectUrl = apiResponse.headers.get('Location') || '';
+    // Handle specific errors
+    const errorMessages = {
+      'unread-limit': '未読記事が30件に達しています',
+      'limit-reached': '今月の記事保存上限に達しました',
+      'already-read': 'この記事は既に読了済みです',
+      'invalid-content': 'このコンテンツは保存できません',
+      'fetch-timeout': '記事の取得がタイムアウトしました'
+    };
 
-      if (redirectUrl.includes('saved=1')) {
-        showNotification('保存完了', `「${title}」をCuraQに保存しました`);
-        return { success: true };
-      } else if (redirectUrl.includes('restored=1')) {
-        showNotification('保存完了', `「${title}」を再登録しました`);
-        return { success: true };
-      } else if (redirectUrl.includes('already-read=1')) {
-        showNotification('既読記事', 'この記事は既に読了済みです');
-        return { success: false, error: 'この記事は既に読了済みです' };
-      } else if (redirectUrl.includes('error=limit-reached')) {
-        showNotification('月間制限', '今月の記事保存上限に達しました');
-        return { success: false, error: '今月の記事保存上限に達しました' };
-      } else if (redirectUrl.includes('error=unread-limit')) {
-        showNotification('未読上限', '未読記事が30件に達しています。記事を読んでから追加してください');
-        return { success: false, error: '未読記事が30件に達しています' };
-      } else if (redirectUrl.includes('error=')) {
-        const errorParam = redirectUrl.match(/error=([^&]+)/)?.[1];
-        showNotification('エラー', `保存に失敗しました: ${errorParam}`);
-        return { success: false, error: `保存に失敗しました: ${errorParam}` };
-      } else {
-        showNotification('保存完了', `「${title}」をCuraQに保存しました`);
-        return { success: true };
-      }
-    }
-
-    // If status is 200, it means we got the login page (not authenticated)
-    if (apiResponse.status === 200) {
-      const text = await apiResponse.text();
-      if (text.includes('login') || text.includes('ログイン')) {
-        showNotification('未ログイン', 'CuraQにログインしてください');
-        chrome.tabs.create({ url: 'https://curaq.pages.dev/login' });
-        return { success: false, error: 'CuraQにログインしてください' };
-      }
-    }
-
-    // Other errors
-    showNotification('エラー', `保存に失敗しました (${apiResponse.status})`);
-    return { success: false, error: `保存に失敗しました (${apiResponse.status})` };
+    const errorMsg = errorMessages[result.error] || result.message || `保存に失敗しました (${apiResponse.status})`;
+    showNotification('エラー', errorMsg);
+    return { success: false, error: errorMsg };
 
   } catch (error) {
     console.error('[CuraQ] Save error:', error);

@@ -7,7 +7,8 @@
     "activeTab",
     "contextMenus",
     "scripting",
-    "notifications"
+    "notifications",
+    "storage"
   ],
   "host_permissions": [
     "https://curaq.pages.dev/*",
