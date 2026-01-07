@@ -20,11 +20,16 @@ chrome.runtime.onInstalled.addListener(() => {
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'save-to-curaq') {
-    // Show immediate feedback
-    showNotification('保存中...', 'CuraQに記事を保存しています');
-
     try {
-      await saveArticleToCuraQ(tab);
+      const result = await saveArticleToCuraQ(tab);
+
+      // Show notification based on result
+      if (result.success && result.tokenless) {
+        showNotification('CuraQで開きました', '確認画面から保存してください');
+      } else if (!result.success) {
+        showNotification('エラー', result.error || '記事の保存に失敗しました');
+      }
+      // For token mode, notification is already shown in saveArticleToCuraQ
     } catch (error) {
       console.error('[CuraQ] Context menu save error:', error);
       showNotification('エラー', '記事の保存に失敗しました');
@@ -113,9 +118,14 @@ async function saveArticleToCuraQ(tab) {
   try {
     const token = await getApiToken();
 
+    // If no token, open GET /share in new tab instead of background save
     if (!token) {
-      showNotification('未設定', 'APIトークンが設定されていません');
-      return { success: false, error: 'APIトークンが設定されていません' };
+      const url = tab.url;
+      const title = tab.title || '';
+      const shareUrl = `https://curaq.pages.dev/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
+
+      chrome.tabs.create({ url: shareUrl });
+      return { success: true, tokenless: true };
     }
 
     // Ensure content script is loaded before sending message
@@ -208,6 +218,7 @@ function showNotification(title, message) {
     iconUrl: 'icons/icon-128.png',
     title: title,
     message: message,
-    priority: 2
+    priority: 2,
+    requireInteraction: true  // User must dismiss the notification
   });
 }

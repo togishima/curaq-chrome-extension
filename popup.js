@@ -18,8 +18,10 @@ const settingsState = document.getElementById('settings-state');
 const settingsToggle = document.getElementById('settings-toggle');
 const tokenInput = document.getElementById('token-input');
 const tokenInputRetry = document.getElementById('token-input-retry');
+const tokenInputSettings = document.getElementById('token-input-settings');
 const saveTokenButton = document.getElementById('save-token-button');
 const saveTokenRetryButton = document.getElementById('save-token-retry-button');
+const saveTokenSettingsButton = document.getElementById('save-token-settings-button');
 const saveButton = document.getElementById('save-button');
 const saveButtonText = document.getElementById('save-button-text');
 const saveSpinner = document.getElementById('save-spinner');
@@ -82,23 +84,19 @@ async function checkTokenStatus() {
 
   const response = await chrome.runtime.sendMessage({ action: 'checkToken' });
 
-  if (response.valid) {
-    previousState = 'ready';
-    showState('ready');
-  } else if (response.error === 'no-token') {
-    previousState = 'no-token';
-    showState('no-token');
-  } else if (response.error === 'invalid-token') {
-    previousState = 'invalid-token';
-    showState('invalid-token');
-  } else if (response.error === 'no-pro-plan') {
-    previousState = 'no-pro';
-    showState('no-pro');
+  // Always allow saving - token is optional now
+  previousState = 'ready';
+  showState('ready');
+
+  // Store token status for UI hints
+  window.tokenStatus = response;
+
+  // Show Pro plan hint if no valid token
+  const noTokenHint = document.getElementById('no-token-hint');
+  if (!response.valid) {
+    noTokenHint.classList.remove('hidden');
   } else {
-    // Network error or other issues - show error state
-    previousState = 'no-token';
-    errorMessage.textContent = 'サーバーに接続できませんでした';
-    showState('error');
+    noTokenHint.classList.add('hidden');
   }
 }
 
@@ -116,17 +114,25 @@ async function saveToken(token) {
   // Verify it works
   const response = await chrome.runtime.sendMessage({ action: 'checkToken' });
 
+  window.tokenStatus = response;
+
   if (response.valid) {
     previousState = 'ready';
     showState('ready');
+    // Hide Pro plan hint when token is valid
+    document.getElementById('no-token-hint').classList.add('hidden');
   } else if (response.error === 'no-pro-plan') {
-    previousState = 'no-pro';
-    showState('no-pro');
+    previousState = 'ready';
+    showState('ready');
+    // Show Pro plan hint for non-Pro users
+    document.getElementById('no-token-hint').classList.remove('hidden');
   } else {
     // Token invalid - clear it and show error
     await chrome.runtime.sendMessage({ action: 'clearToken' });
-    previousState = 'invalid-token';
-    showState('invalid-token');
+    previousState = 'ready';
+    showState('ready');
+    // Show Pro plan hint
+    document.getElementById('no-token-hint').classList.remove('hidden');
   }
 }
 
@@ -142,13 +148,23 @@ async function saveCurrentArticle() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     // Send message to background script to save article
+    // Background script will handle token-less mode automatically
     const response = await chrome.runtime.sendMessage({
       action: 'saveArticle',
       tabId: tab.id
     });
 
     if (response.success) {
-      showState('success');
+      // Check if we have a token or not
+      const tokenStatus = window.tokenStatus || await chrome.runtime.sendMessage({ action: 'checkToken' });
+
+      if (tokenStatus.valid) {
+        // Token mode: background save completed
+        showState('success');
+      } else {
+        // No token mode: opened in new tab, close popup
+        window.close();
+      }
     } else {
       errorMessage.textContent = response.error || '保存に失敗しました';
       showState('error');
@@ -168,8 +184,11 @@ async function saveCurrentArticle() {
 // Clear token
 async function clearToken() {
   await chrome.runtime.sendMessage({ action: 'clearToken' });
-  previousState = 'no-token';
-  showState('no-token');
+  window.tokenStatus = { valid: false, error: 'no-token' };
+  previousState = 'ready';
+  showState('ready');
+  // Show Pro plan hint after clearing token
+  document.getElementById('no-token-hint').classList.remove('hidden');
 }
 
 // Event listeners
@@ -179,6 +198,10 @@ saveTokenButton.addEventListener('click', () => {
 
 saveTokenRetryButton.addEventListener('click', () => {
   saveToken(tokenInputRetry.value);
+});
+
+saveTokenSettingsButton.addEventListener('click', () => {
+  saveToken(tokenInputSettings.value);
 });
 
 // Allow Enter key to save token
@@ -191,6 +214,12 @@ tokenInput.addEventListener('keypress', (e) => {
 tokenInputRetry.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     saveToken(tokenInputRetry.value);
+  }
+});
+
+tokenInputSettings.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    saveToken(tokenInputSettings.value);
   }
 });
 
@@ -210,15 +239,29 @@ retryButton.addEventListener('click', () => {
 settingsToggle.addEventListener('click', () => {
   if (!settingsState.classList.contains('hidden')) {
     // Already in settings, go back
-    showState(previousState);
+    checkTokenStatus();
   } else {
     // Show settings
     showState('settings');
+
+    // Update settings UI based on token status
+    const tokenStatus = window.tokenStatus || { valid: false };
+    const tokenNotSetSection = document.getElementById('token-not-set-section');
+    const tokenSetSection = document.getElementById('token-set-section');
+
+    if (tokenStatus.valid) {
+      tokenNotSetSection.classList.add('hidden');
+      tokenSetSection.classList.remove('hidden');
+    } else {
+      tokenNotSetSection.classList.remove('hidden');
+      tokenSetSection.classList.add('hidden');
+    }
   }
 });
 
 backButton.addEventListener('click', () => {
-  showState(previousState);
+  // Re-check token status to update UI hints
+  checkTokenStatus();
 });
 
 clearTokenButton.addEventListener('click', () => {

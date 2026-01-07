@@ -286,12 +286,21 @@
       </p>
     </div>
 
-    <!-- Ready state (token valid) -->
+    <!-- Ready state (token valid or no token) -->
     <div id="ready-state" class="hidden">
       <button id="save-button" class="button button-primary">
         <span id="save-button-text">この記事を保存</span>
         <div id="save-spinner" class="spinner hidden"></div>
       </button>
+      <div id="no-token-hint" class="help-text hidden" style="margin-top: 12px; padding: 12px; background: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;">
+        <div style="font-weight: 600; color: #92400e; margin-bottom: 4px;">💡 Proプランでもっと便利に</div>
+        <div style="color: #92400e; font-size: 11px; line-height: 1.4;">
+          バックグラウンド保存、Markdown自動取得などの機能が利用可能になります。
+        </div>
+        <a href="https://curaq.pages.dev/settings" target="_blank" style="display: inline-block; margin-top: 8px; color: #92400e; font-weight: 600; text-decoration: underline;">
+          プランを見る →
+        </a>
+      </div>
     </div>
 
     <!-- Success state -->
@@ -319,16 +328,30 @@
       <div class="status info">
         設定
       </div>
-      <div class="input-group">
-        <label class="input-label">APIトークン（設定済み）</label>
-        <input type="password" id="current-token" class="input" placeholder="********" disabled>
+      <div id="token-not-set-section" class="hidden">
+        <div class="input-group">
+          <label class="input-label">APIトークン</label>
+          <input type="password" id="token-input-settings" class="input" placeholder="トークンを入力...">
+        </div>
+        <button id="save-token-settings-button" class="button button-primary" style="margin-bottom: 12px;">
+          トークンを保存
+        </button>
+        <p class="help-text">
+          トークンは<a href="https://curaq.pages.dev/settings/access-token" target="_blank">CuraQ設定ページ</a>で取得できます。Pro会員限定機能です。
+        </p>
       </div>
-      <div class="button-group">
+      <div id="token-set-section" class="hidden">
+        <div class="input-group">
+          <label class="input-label">APIトークン（設定済み）</label>
+          <input type="password" id="current-token" class="input" placeholder="********" disabled>
+        </div>
+        <button id="clear-token-button" class="button button-danger" style="margin-bottom: 12px;">
+          トークンを削除
+        </button>
+      </div>
+      <div style="margin-top: 12px;">
         <button id="back-button" class="button button-secondary">
           戻る
-        </button>
-        <button id="clear-token-button" class="button button-danger">
-          トークンを削除
         </button>
       </div>
     </div>
