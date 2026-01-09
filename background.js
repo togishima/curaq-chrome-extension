@@ -4,7 +4,7 @@
  */
 
 // CuraQ API endpoint
-const CURAQ_API_URL = 'https://curaq.pages.dev/api/v1';
+const CURAQ_API_URL = 'https://curaq.app/api/v1';
 // For local development, uncomment:
 // const CURAQ_API_URL = 'http://localhost:5173/api/v1';
 
@@ -27,7 +27,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
       // If no token, open GET /share in new tab
       if (!token) {
-        const shareUrl = `https://curaq.pages.dev/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
+        const shareUrl = `https://curaq.app/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
         chrome.tabs.create({ url: shareUrl });
         return;
       }
@@ -132,7 +132,7 @@ async function saveArticleToCuraQ(tab) {
 
     // If no token, open GET /share in new tab
     if (!token) {
-      const shareUrl = `https://curaq.pages.dev/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
+      const shareUrl = `https://curaq.app/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
       chrome.tabs.create({ url: shareUrl });
       return { success: true, tokenless: true };
     }

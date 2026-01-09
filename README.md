@@ -1,6 +1,6 @@
 # CuraQ Saver - Chrome拡張機能
 
-[CuraQ](https://curaq.pages.dev) に記事を保存するための公式Chrome拡張機能です。
+[CuraQ](https://curaq.app) に記事を保存するための公式Chrome拡張機能です。
 
 ---
 
@@ -32,7 +32,7 @@
 
 ## 必要なもの
 
-- **CuraQアカウント**（無料で作成できます）: [CuraQ](https://curaq.pages.dev)
+- **CuraQアカウント**（無料で作成できます）: [CuraQ](https://curaq.app)
 - **Google Chrome** ブラウザ
 
 ---
@@ -115,7 +115,7 @@ Chrome Web Storeにはまだ公開されていないため、手動でインス�
 
 1. CuraQアイコンをクリックします
 2. 歯車アイコン（設定）をクリックします
-3. [CuraQ設定ページ](https://curaq.pages.dev/settings/access-token)でトークンを取得します
+3. [CuraQ設定ページ](https://curaq.app/settings/access-token)でトークンを取得します
 4. 取得したトークンを入力して保存します
 
 </details>
@@ -137,7 +137,7 @@ Chrome Web Storeにはまだ公開されていないため、手動でインス�
 ### 「保存できない」場合
 
 1. **CuraQにログインしていますか？**
-   - [CuraQ](https://curaq.pages.dev) を開いてログイン状態を確認してください
+   - [CuraQ](https://curaq.app) を開いてログイン状態を確認してください
 
 2. **拡張機能が有効になっていますか？**
    - `chrome://extensions/` を開いて、「CuraQ Saver」がONになっているか確認してください
@@ -154,7 +154,7 @@ Chromeを起動するたびにこの警告が表示されることがありま�
 
 ### それでも解決しない場合
 
-[フィードバックページ](https://curaq.pages.dev/feedback)から状況をお知らせください。
+[フィードバックページ](https://curaq.app/feedback)から状況をお知らせください。
 できる限り対応いたします。
 
 ---
@@ -177,4 +177,4 @@ MIT License - 詳細は [LICENSE](LICENSE) ファイルをご覧ください。
 
 バグ報告や機能のご要望は、以下からお願いします：
 
-- **フィードバックページ**（推奨）: [https://curaq.pages.dev/feedback](https://curaq.pages.dev/feedback)
+- **フィードバックページ**（推奨）: [https://curaq.app/feedback](https://curaq.app/feedback)

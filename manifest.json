@@ -11,7 +11,7 @@
     "storage"
   ],
   "host_permissions": [
-    "https://curaq.pages.dev/*",
+    "https://curaq.app/*",
     "http://localhost:5173/*"
   ],
   "background": {

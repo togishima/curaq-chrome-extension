@@ -3,7 +3,7 @@
  * Handles article save confirmation from context menu
  */
 
-const CURAQ_URL = 'https://curaq.pages.dev';
+const CURAQ_URL = 'https://curaq.app';
 
 // UI elements
 const loadingState = document.getElementById('loading-state');

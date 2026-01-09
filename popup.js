@@ -3,7 +3,7 @@
  * Handles UI state and user interactions with token-based auth
  */
 
-const CURAQ_URL = 'https://curaq.pages.dev';
+const CURAQ_URL = 'https://curaq.app';
 
 // UI elements
 const loadingState = document.getElementById('loading-state');
