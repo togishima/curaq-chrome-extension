@@ -84,25 +84,12 @@ function showState(state) {
 }
 
 // Check token status
+// Commented out for v1.0 - will be used in future Pro features
 async function checkTokenStatus() {
-  showState('loading');
-
-  const response = await chrome.runtime.sendMessage({ action: 'checkToken' });
-
-  // Always allow saving - token is optional now
+  
+  // For v1.0, always show ready state
   previousState = 'ready';
   showState('ready');
-
-  // Store token status for UI hints
-  window.tokenStatus = response;
-
-  // Show Pro plan hint if no valid token
-  const noTokenHint = document.getElementById('no-token-hint');
-  if (!response.valid) {
-    noTokenHint.classList.remove('hidden');
-  } else {
-    noTokenHint.classList.add('hidden');
-  }
 }
 
 // Save token
@@ -149,29 +136,21 @@ async function saveCurrentArticle() {
   try {
     // Disable button and show spinner
     saveButton.disabled = true;
-    saveButtonText.textContent = '確認中...';
+    saveButtonText.textContent = '開いています...';
     saveSpinner.classList.remove('hidden');
 
     // Get current tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    // Send message to background script to prepare article
+    // Send message to background script to open share page
     const response = await chrome.runtime.sendMessage({
       action: 'saveArticle',
       tabId: tab.id
     });
 
     if (response.success) {
-      if (response.tokenless) {
-        // No token mode: opened in new tab, close popup
-        window.close();
-      } else if (response.needsConfirmation) {
-        // Token mode: show confirmation screen
-        pendingArticle = { url: response.url, title: response.title };
-        document.getElementById('confirm-title').textContent = response.title;
-        document.getElementById('confirm-url').textContent = response.url;
-        showState('confirmation');
-      }
+      // Share page opened in new tab, close popup
+      window.close();
     } else {
       errorMessage.textContent = response.error || '保存に失敗しました';
       showState('error');

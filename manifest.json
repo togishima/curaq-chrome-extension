@@ -9,10 +9,6 @@
     "notifications",
     "storage"
   ],
-  "host_permissions": [
-    "https://curaq.app/*",
-    "http://localhost:5173/*"
-  ],
   "background": {
     "service_worker": "background.js"
   },
